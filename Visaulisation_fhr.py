@@ -18,67 +18,18 @@ import matplotlib.pyplot as plt2
 import scipy
 from scipy import stats
 
+# Extract data from .csv file
+
 data = []
 ifile  = open('M000005389.csv', "r")
 read = csv.reader(ifile)
 for row in read :
     data.append(row)
 
-print(len(data))
-arraydata = data
+arraydata = data   
 
-time=[]
 
-for x in range(len(data)):
-    time.append(data[x][0])
-    
-def parse_date(text):    
-    for fmt in ('%m/%j/%y  %H:%M:%S %p', '%m/%j/%y  %H:%M:%S'):
-        try:
-            return datetime.datetime.strptime(text, fmt)
-        except ValueError:
-            pass
-    raise ValueError('no valid date format found')
-
-tm = []           
-for x in range(len(time)):
-    z = parse_date(time[x])
-    tm.append(z)
-tm = np.array(tm)   
- 
-
-mn = []
-for x in range(len(tm)):
-    v = str(tm[x])
-    f = v.split(" ")
-    g = f[1].split(":")
-    mn.append(g[1])        
-    
-# identify and delete fhr and uc dates
-    
-sc = []
-for x in range(len(mn)):
-    r = np.arange(240)
-    sc.append(r)
-
-sec =[]
-vbn = 0
-for x in range(len(mn)):
-    for y in range(240):
-        sec.append(vbn+y)
-    vbn =vbn+240
-        
-print(len(sec))
-print(len(sc))
-    
-print(tm[1])
-dt = str(tm[10])
-dt = dt.split(" ")
-print(dt[1])
-st = str(dt[1])
-st = st.split(":")
-print(st[1])    
-
+# Seperate FHR and UC values
 
 ds = arraydata
 
@@ -108,6 +59,8 @@ for x in range(len(arraydata)):
     else:
         uc.append(arraydata[x])
 
+# Remove error values('0')
+
 for x in range(len(fhr)):
     fhr[x].pop(0)
     fhr[x].pop(0)
@@ -118,7 +71,8 @@ for x in range(len(uc)):
     uc[x].pop(0) 
     uc[x].pop(0)
       
-        
+# Flatten all the data strips of 240 points into single timeline. 
+
 def flatten(l):
     flatList = []
     for elem in l:
@@ -140,7 +94,9 @@ uc = list(map(int, uc))
       
 fhr = np.array(fhr)
 uc = np.array(uc)
-        
+
+# Remove machine error values
+
 c= 1
 ind = []
 for x in range(len(fhr)):
@@ -153,6 +109,7 @@ fhr = np.delete(fhr,ind)
 uc = np.delete(uc,ind)
 
 # split windows
+
 def chunks(l, n):
     """Yield successive n-sized chunks from l."""
     for i in range(0, len(l), n):
@@ -170,11 +127,7 @@ uc1 = np.array(uc1)
 ucz = uc1[4]
 b =ucz
 
-def smooth(y, box_pts):
-    box = np.ones(box_pts)/box_pts
-    y_smooth = np.convolve(y, box, mode='same')
-    return y_smooth
-#plt.plot(yhat = savgol_filter(fhr1[0], 11, 3),color = 'red')
+# Smooth data
 
 N = 60
 fhrz = pd.rolling_mean(fhrz, N)[N-1:]
@@ -183,6 +136,7 @@ mdn = np.mean(fhrz)
 mn = np.median(fhrz)
 j=0
 
+# Algorithm for estimating the Baseline
 count = 0
 
 while(abs(mdn-j) > 0.15):    
@@ -192,8 +146,6 @@ while(abs(mdn-j) > 0.15):
     mins = np.array(peaks[1])
     maxs = matrix(maxs).transpose()[0].getA()[0]
     mins = matrix(mins).transpose()[0].getA()[0]
-    #print(maxs) #Maximums
-    #print(mins) #Minimums
     
     ends = []
     starts = []
@@ -204,7 +156,8 @@ while(abs(mdn-j) > 0.15):
         if fhrz[int(maxs[k])] > m15:
             pk.append(maxs[k])
     
-    # Removing values above 170        
+    # Removing values above 170('machine error')      
+    
     pk = list(filter(lambda x : (int(fhrz[int(x)])) < 200 , pk))
     #print(pk)
     
@@ -241,9 +194,7 @@ while(abs(mdn-j) > 0.15):
         
         
             
-            
-            
-    # add statement: 
+     
         
     ev = 0
     sv = 0        
@@ -292,7 +243,9 @@ while(abs(mdn-j) > 0.15):
     
     count = 0
     check = []
-    #check duration
+    
+    #check duration for accelerations and decelerations. 
+    
     for x in range(len(starts)):
         if starts[x] ==  'NA':
             np.delete(starts, x)
@@ -338,6 +291,7 @@ while(abs(mdn-j) > 0.15):
     
         
     #check value for baseline:
+    
     index = []
     for x in range(len(starts)):
         if starts[x] ==  'NA':
@@ -388,7 +342,8 @@ for k in range(len(cont)):
     
 cont = np.delete(cont,cn)
 
-#Finding starting and ending points
+#Finding starting and ending points for accelerations and decelerations
+
 for x in range (len(cont)):
     t =int(len(ucz)-1)
     s = int(cont[x])
@@ -429,6 +384,8 @@ lw = np.array(lw)
 lw = lw.astype(np.int64)
 pk = np.array(pk)
 pk = pk.astype(np.int64)
+
+# Plot data
 
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1)   
